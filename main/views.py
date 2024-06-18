@@ -6,13 +6,37 @@ from django.urls.base import reverse
 from django.contrib.auth import authenticate,login,logout
 from youtube_search import YoutubeSearch
 import json
-# import cardupdate
+from django.contrib.auth.decorators import login_required
+from django.contrib.auth import authenticate, login as auth_login
 
+def login(request):
+    if request.method == 'POST':
+        username = request.POST['username']
+        password = request.POST['password']
+        user = authenticate(request, username=username, password=password)
+        if user is not None:
+            auth_login(request, user)
+            return redirect('player')
+        else:
+            return render(request, 'login.html', {'error': 'Username or password invalid'})
+    return render(request, 'login.html')
+
+def signup(request):
+    if request.method == 'POST':
+        username = request.POST['username']
+        password = request.POST['password']
+        if User.objects.filter(username=username).exists():
+            return render(request, 'signup.html', {'error': 'Username already exists'})
+        user = User.objects.create_user(username=username, password=password)
+        user.save()
+        return redirect('login')
+    return render(request, 'signup.html')
 
 
 f = open('card.json', 'r')
 CONTAINER = json.load(f)
 
+@login_required(login_url='/login/')
 def default(request):
     global CONTAINER
 
