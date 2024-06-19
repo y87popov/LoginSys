@@ -8,47 +8,39 @@ from youtube_search import YoutubeSearch
 import json
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth import authenticate, login as auth_login
+from django.contrib.auth.decorators import login_required
+from django.contrib.auth.forms import UserCreationForm
+from django.contrib.auth.forms import AuthenticationForm
+from django.http import HttpResponse
 
-def login(request):
+def login_view(request):
     if request.method == 'POST':
         username = request.POST['username']
         password = request.POST['password']
         user = authenticate(request, username=username, password=password)
         if user is not None:
-            auth_login(request, user)
-            return redirect('player')
+            login(request, user)
+            return redirect('/player.html')
         else:
-            return render(request, 'login.html', {'error': 'Username or password invalid'})
+            return render(request, 'login.html')
     return render(request, 'login.html')
 
-def signup(request):
-    if request.method == 'POST':
-        username = request.POST['username']
-        password = request.POST['password']
-        if User.objects.filter(username=username).exists():
-            return render(request, 'signup.html', {'error': 'Username already exists'})
-        user = User.objects.create_user(username=username, password=password)
-        user.save()
-        return redirect('login')
-    return render(request, 'signup.html')
 
-
-f = open('card.json', 'r')
-CONTAINER = json.load(f)
-
-@login_required(login_url='/login/')
+@login_required
 def default(request):
-    global CONTAINER
+    return render(request, 'player.html')
 
 
-    if request.method == 'POST':
-
-        add_playlist(request)
-        return HttpResponse("")
-
-    song = 'kSFJGEHDCrQ'
-    return render(request, 'player.html',{'CONTAINER':CONTAINER, 'song':song})
-
+def signup(request):
+    if request.method == 'POST' and 'btn_sign_up' in request.POST:
+        form = UserCreationForm(request.POST)
+        if form.is_valid():
+            user = form.save()
+            login(request, user)
+            return redirect('player')
+    else:
+        form = UserCreationForm()
+    return render(request, 'player.html')
 
 
 def playlist(request):
@@ -96,3 +88,7 @@ def add_playlist(request):
         cur_user.playlist_song_set.create(song_title=request.POST['title'],song_dur=request.POST['duration'],
         song_albumsrc = song__albumsrc,
         song_channel=request.POST['channel'], song_date_added=request.POST['date'],song_youtube_id=request.POST['songid'])
+
+
+def player(request):
+    return render(request, 'player.html')
