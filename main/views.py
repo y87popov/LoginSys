@@ -8,10 +8,38 @@ from youtube_search import YoutubeSearch
 import json
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth import authenticate, login as auth_login
-from django.contrib.auth.decorators import login_required
-from django.contrib.auth.forms import UserCreationForm
-from django.contrib.auth.forms import AuthenticationForm
 from django.http import HttpResponse
+from django.shortcuts import render, redirect
+from django.contrib.auth import authenticate, login, logout
+from django.contrib.auth.forms import UserCreationForm, AuthenticationForm
+
+
+def signup_view(request):
+    if request.method == 'POST':
+        form = UserCreationForm(request.POST)
+        if form.is_valid():
+            form.save()
+            return redirect('login')
+    else:
+        form = UserCreationForm()
+    return render(request, 'signup.html', {'form': form})
+
+def login_view(request):
+    if request.method == 'POST':
+        form = AuthenticationForm(data=request.POST)
+        if form.is_valid():
+            user = form.get_user()
+            login(request, user)
+            return redirect('player')
+    else:
+        form = AuthenticationForm()
+    return render(request, 'login.html', {'form': form})
+
+def logout_view(request):
+    if request.method == 'POST':
+        logout(request)
+        return redirect('login')
+
 
 def login_view(request):
     if request.method == 'POST':
@@ -29,21 +57,11 @@ def login_view(request):
 @login_required
 def default(request):
     return render(request, 'player.html')
-
-
-def signup(request):
-    if request.method == 'POST' and 'btn_sign_up' in request.POST:
-        form = UserCreationForm(request.POST)
-        if form.is_valid():
-            user = form.save()
-            login(request, user)
-            return redirect('player')
-    else:
-        form = UserCreationForm()
+@login_required
+def player_view(request):
     return render(request, 'player.html')
 
-
-def playlist(request):
+def playlist_view(request):
     cur_user = playlist_user.objects.get(username = request.user)
     try:
       song = request.GET.get('song')
@@ -52,7 +70,7 @@ def playlist(request):
     except:
       pass
     if request.method == 'POST':
-        add_playlist(request)
+        add_playlist_view(request)
         return HttpResponse("")
     song = 'kSFJGEHDCrQ'
     user_playlist = cur_user.playlist_song_set.all()
@@ -60,10 +78,10 @@ def playlist(request):
     return render(request, 'playlist.html', {'song':song,'user_playlist':user_playlist})
 
 
-def search(request):
+def search_view(request):
   if request.method == 'POST':
 
-    add_playlist(request)
+    add_playlist_view(request)
     return HttpResponse("")
   try:
     search = request.GET.get('search')
@@ -78,7 +96,7 @@ def search(request):
 
 
 
-def add_playlist(request):
+def add_playlist_view(request):
     cur_user = playlist_user.objects.get(username = request.user)
 
     if (request.POST['title'],) not in cur_user.playlist_song_set.values_list('song_title', ):
@@ -89,6 +107,3 @@ def add_playlist(request):
         song_albumsrc = song__albumsrc,
         song_channel=request.POST['channel'], song_date_added=request.POST['date'],song_youtube_id=request.POST['songid'])
 
-
-def player(request):
-    return render(request, 'player.html')
